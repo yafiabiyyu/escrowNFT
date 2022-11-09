@@ -1,8 +1,10 @@
 import { Contract } from "ethers";
 import { Interface } from "ethers/lib/utils";
 import { Falsy, useCall, useContractFunction } from "@usedapp/core";
+import { escrowContract } from "./escrow";
 
-export const abi = new Interface([
+export const defaultNFT = "0x0FA2488bBA28A94e166972100C460C94c4123DB3";
+export const nftAbi = new Interface([
     {
         inputs: [],
         stateMutability: "nonpayable",
@@ -402,47 +404,64 @@ export const abi = new Interface([
         type: "function",
     },
 ]);
+export const contractNFT = new Contract(defaultNFT, nftAbi);
 
-export const escrowContract = "0x1dbA2902A43d2e0af4DF890Ae22FFf9CE5B79108";
-export const defaultNFT = "0x0FA2488bBA28A94e166972100C460C94c4123DB3";
-
-export function useOwnerOf(contract: Contract, tokenId:string) {
-    const { value, error } = useCall(
-        contract && tokenId && {
-            contract: contract,
-            method: "ownerOf",
-            args:[tokenId],
-        }
-    ) ?? {};
+export function useOwnerOf(
+    contract: Contract,
+    tokenId: string,
+    owner: string | undefined
+) {
+    const { value, error } = useCall(contract && tokenId && owner && {
+        contract:contract,
+        method:"ownerOf",
+        args:[tokenId],
+    }) ?? {};
     if(error) {
-        console.error(error.message);
-        return 'error';
+        return "Error";
     }
-    return value?.[0];
-}
-
-export function useGetApproval(contract:Contract, tokenId:string) {
-    const { value, error } = useCall(
-        tokenId && contract && {
-            contract: contract,
-            method: "getApproved",
-            args:[tokenId],
-        }
-    ) ?? {};
-    if(error) {
-        console.error(error.message);
+    if(tokenId === "") {
         return undefined;
+    }else {
+        if(value?.[0] === owner) {
+            return true;
+        }else {
+            return false;
+        }
     }
-    return value?.[0];
 }
 
-export function useApprove(contract:Contract) {
-    const {state, send} = useContractFunction(contract, "approve");
-    const success = state.status === "Success";
-    const error = state.status === "Fail" || state.status === "Exception"
-    return {
-        success,
-        error,
-        send
+export function useGetApprove(contract: Contract, tokenId: string) {
+    const { value, error } =
+        useCall(
+            contract &&
+                tokenId && {
+                    contract: contract,
+                    method: "getApproved",
+                    args: [tokenId],
+                }
+        ) ?? {};
+    if (error) {
+        return "Error";
     }
+    if(tokenId === "") {
+        return undefined;
+    }else {
+        if (value?.[0] === escrowContract) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+export function useApprove(contract: Contract) {
+    const { state, send } = useContractFunction(contract, "approve");
+    const approve = send;
+    const successApprove = state.status === "Success";
+    const errorApprove = state.status === "Fail" || state.status === "Exception";
+    return {
+        successApprove,
+        errorApprove,
+        approve,
+    };
 }

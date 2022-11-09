@@ -1,5 +1,12 @@
 import React, { ReactElement, FC } from "react";
 import {
+    useApprove,
+    useGetApprove,
+    useOwnerOf,
+    contractNFT,
+    nftAbi,
+} from "../utils/nft";
+import {
     Box,
     Typography,
     Grid,
@@ -10,24 +17,22 @@ import {
     Snackbar,
     AlertColor,
 } from "@mui/material";
-import {
-    abi,
-    defaultNFT,
-    escrowContract,
-    useApprove,
-    useGetApproval,
-    useOwnerOf,
-} from "../utils/nft";
-import { useEthers, useContractFunction } from "@usedapp/core";
-import { Contract } from "ethers";
+import { useEthers } from "@usedapp/core";
+import { Contract, ethers } from "ethers";
+import { escrowContract, useGetTxId, useCreateEscrow } from "../utils/escrow";
+import { Link as LK } from "react-router-dom";
 
-interface StateData {
+interface EscrowState {
+    showForm: boolean;
+    showApprove: boolean;
+}
+
+interface EscrowOrder {
     buyer: string;
     contract: Contract;
     nftAddress: string;
     tokenId: string;
     paymentAmount: string;
-    approveStatus: boolean;
 }
 
 interface StateSnackbar {
@@ -38,64 +43,174 @@ interface StateSnackbar {
 
 const Home: FC<any> = (): ReactElement => {
     const { account } = useEthers();
-    const [alert, setAlert] = React.useState<StateSnackbar>({
-        open: false,
-        type: "success",
-        message: ""
-    });
-
-    const [values, setValues] = React.useState<StateData>({
+    const [order, setOrder] = React.useState<EscrowOrder>({
         buyer: "",
-        contract: new Contract(defaultNFT, abi),
+        contract: contractNFT,
         nftAddress: "",
         tokenId: "",
         paymentAmount: "",
-        approveStatus: true,
     });
-    const ownerStatus = useOwnerOf(values.contract, values.tokenId);
-    const approvalStatus = useGetApproval(values.contract, values.tokenId);
-    const {success, error, send} = useApprove(values.contract);
 
-    const handleInputChange =
-        (prop: keyof StateData) =>
+    const ownerStatus = useOwnerOf(order.contract, order.tokenId, account);
+    const approveStatus = useGetApprove(order.contract, order.tokenId);
+    const { successApprove, errorApprove, approve } = useApprove(
+        order.contract
+    );
+    const txId = useGetTxId(account, order.buyer, order.nftAddress);
+    const { successCreate, errorCreate, sendCreate } = useCreateEscrow();
+
+    const [values, setValues] = React.useState<EscrowState>({
+        showForm: true,
+        showApprove: false,
+    });
+
+    const [alert, setAlert] = React.useState<StateSnackbar>({
+        open: false,
+        type: "success",
+        message: "",
+    });
+
+    const handleOrderData =
+        (prop: keyof EscrowOrder) =>
         (event: React.ChangeEvent<HTMLInputElement>) => {
-            setValues({ ...values, [prop]: event.target.value });
+            setOrder({ ...order, [prop]: event.target.value });
         };
 
-    const handleContractChange = (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        setValues({
-            ...values,
-            contract: new Contract(event.target.value, abi),
+    const handleContractData = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setOrder({
+            ...order,
+            contract: new Contract(event.target.value, nftAbi),
             nftAddress: event.target.value,
         });
-        console.log(values.contract);
+    };
+
+    const handleClose = (
+        event: React.SyntheticEvent | Event,
+        reason?: string
+    ) => {
+        if (reason === "clickaway") {
+            return;
+        }
+        setAlert({ ...alert, open: false });
+    };
+
+    const handleApproveButton = async () => {
+        await approve(escrowContract, order.tokenId);
+    };
+
+    const handleCreateButton = async () => {
+        if (
+            order.buyer !== "" &&
+            order.nftAddress !== "" &&
+            order.tokenId !== "" &&
+            order.paymentAmount !== ""
+        ) {
+            await sendCreate(
+                txId,
+                order.tokenId,
+                ethers.utils.parseEther(order.paymentAmount),
+                order.nftAddress,
+                order.buyer
+            );
+        } else {
+            setAlert({
+                ...alert,
+                open: true,
+                type: "warning",
+                message: "Complete the data first",
+            });
+        }
     };
 
     React.useEffect(() => {
-        if(ownerStatus === "error") {
-            setAlert({...alert, open:true, type:"error", message:"wrong contract address or token id"})
-        } else if(ownerStatus === account || ownerStatus === undefined) {
-            setAlert({...alert, open:false, type:"success", message:""})
-        }else {
-            console.log(ownerStatus);
-            setAlert({...alert, open:true, type:"warning", message:`You are not the owner of Token ID : ${values.tokenId}`});
+        if (!approveStatus && approveStatus !== undefined) {
+            setValues({
+                ...values,
+                showApprove: true,
+            });
+        } else if (approveStatus || approveStatus === undefined) {
+            setValues({
+                ...values,
+                showApprove: false,
+            });
         }
-    }, [ownerStatus])
+    }, [approveStatus]);
 
     React.useEffect(() => {
-        if(approvalStatus !== escrowContract) {
-            setValues({...values, approveStatus:false});
-        }else {
-            setValues({...values, approveStatus:true});
+        if (ownerStatus === "Error") {
+            setAlert({
+                ...alert,
+                open: true,
+                type: "error",
+                message: "Incorrect address or token ID",
+            });
+        } else if (!ownerStatus && ownerStatus !== undefined) {
+            setAlert({
+                ...alert,
+                open: true,
+                type: "warning",
+                message: "You are not the owner",
+            });
+        } else if (ownerStatus || ownerStatus === undefined) {
+            setAlert({
+                ...alert,
+                open: false,
+                type: "success",
+                message: "",
+            });
         }
-    },[approvalStatus])
+    }, [ownerStatus]);
 
-    const handleApprove = async () => {
-        await send(escrowContract, values.tokenId);
-        console.log("Berhasil Minting");
-    }
+    React.useEffect(() => {
+        if (successApprove) {
+            setAlert({
+                ...alert,
+                open: true,
+                type: "success",
+                message: "Transaction Successful",
+            });
+        } else if (errorApprove) {
+            setAlert({
+                ...alert,
+                open: true,
+                type: "warning",
+                message: "Transaction failed",
+            });
+        } else {
+            setAlert({
+                ...alert,
+                open: false,
+                type: "success",
+                message: "",
+            });
+        }
+    }, [successApprove, errorApprove]);
+
+    React.useEffect(() => {
+        if (successCreate) {
+            setAlert({
+                ...alert,
+                open: true,
+                type: "success",
+                message: "Transaction Successful",
+            });
+            setValues({ ...values, showForm: false });
+        } else if (errorCreate) {
+            setAlert({
+                ...alert,
+                open: true,
+                type: "warning",
+                message: "Transaction failed",
+            });
+        } else {
+            setAlert({
+                ...alert,
+                open: false,
+                type: "success",
+                message: "",
+            });
+        }
+    });
 
     return (
         <Box
@@ -106,113 +221,172 @@ const Home: FC<any> = (): ReactElement => {
                 alignItems: "center",
             }}
         >
-            <Snackbar open={alert.open} autoHideDuration={7000}>
+            <Snackbar open={alert.open} autoHideDuration={5000}>
                 <Alert severity={alert.type}>{alert.message}</Alert>
             </Snackbar>
-            <Typography component="h1" variant="h5">
-                Create Escrow
-            </Typography>
-            <Box component="form" noValidate sx={{ mt: 3 }}>
-                <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                        {!account && (
-                            <TextField
-                                name="seller"
-                                fullWidth
-                                id="seller"
-                                label="Seller Address"
-                                disabled
-                                value=""
-                                size="medium"
-                            />
-                        )}
-                        {account && (
-                            <TextField
-                                name="seller"
-                                fullWidth
-                                id="seller"
-                                label="Seller Address"
-                                disabled
-                                value={account}
-                                size="medium"
-                            />
-                        )}
-                    </Grid>
-                    <Grid item xs={12}>
-                        <TextField
-                            name="buyer"
-                            onChange={handleInputChange("buyer")}
-                            fullWidth
-                            id="buyer"
-                            label="Buyer Address"
-                            size="medium"
-                            required
-                            autoFocus
-                        />
-                    </Grid>
-                    <Grid item xs={12}>
-                        <TextField
-                            name="nft"
-                            onChange={handleContractChange}
-                            fullWidth
-                            required
-                            id="nft"
-                            label="NFT Address"
-                            size="medium"
-                        />
-                    </Grid>
-                    <Grid item xs={6}>
-                        <TextField
-                            name="tokenId"
-                            onChange={handleInputChange("tokenId")}
-                            fullWidth
-                            required
-                            id="tokenId"
-                            label="Token ID"
-                            size="medium"
-                        />
-                    </Grid>
-                    <Grid item xs={6}>
-                        <TextField
-                            name="paymentAmount"
-                            onChange={handleInputChange("paymentAmount")}
-                            fullWidth
-                            required
-                            id="paymentAmount"
-                            label="Payment Amount"
-                            size="medium"
-                        />
-                    </Grid>
-                </Grid>
-                {values.approveStatus && (
-                    <Button
-                        size="large"
-                        fullWidth
-                        variant="contained"
-                        sx={{ mt: 2, mb: 2 }}
-                    >
+            {values.showForm && (
+                <React.Fragment>
+                    <Typography component="h1" variant="h5">
                         Create Escrow
-                    </Button>
-                )}
-                {!values.approveStatus && (
-                    <Button
-                        size="large"
-                        onClick={handleApprove}
-                        fullWidth
-                        variant="contained"
-                        sx={{ mt: 2, mb: 2 }}
-                    >
-                        Approve NFT
-                    </Button>
-                )}
-                <Grid container justifyContent="flex-end">
-                    <Grid item>
-                        <Link href="info/" variant="body2">
-                            Already have an escrow id? Check status
-                        </Link>
-                    </Grid>
-                </Grid>
-            </Box>
+                    </Typography>
+                    <Box component="form" noValidate sx={{ mt: 3 }}>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12}>
+                                {!account && (
+                                    <TextField
+                                        name="seller"
+                                        fullWidth
+                                        id="seller"
+                                        label="Seller Address"
+                                        InputProps={{ readOnly: true }}
+                                        value=""
+                                        size="medium"
+                                    />
+                                )}
+                                {account && (
+                                    <TextField
+                                        name="seller"
+                                        fullWidth
+                                        id="seller"
+                                        label="Seller Address"
+                                        InputProps={{ readOnly: true }}
+                                        value={account}
+                                        size="medium"
+                                    />
+                                )}
+                            </Grid>
+                            <Grid item xs={12}>
+                                <TextField
+                                    onChange={handleOrderData("buyer")}
+                                    name="buyer"
+                                    fullWidth
+                                    id="buyer"
+                                    label="Buyer Address"
+                                    size="medium"
+                                />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <TextField
+                                    onChange={handleContractData}
+                                    name="nftAddress"
+                                    fullWidth
+                                    id="nftAddress"
+                                    label="NFT Address"
+                                    size="medium"
+                                />
+                            </Grid>
+                            <Grid item xs={6}>
+                                <TextField
+                                    onChange={handleOrderData("tokenId")}
+                                    name="tokenId"
+                                    fullWidth
+                                    id="tokenId"
+                                    label="Token ID"
+                                    size="medium"
+                                />
+                            </Grid>
+                            <Grid item xs={6}>
+                                <TextField
+                                    onChange={handleOrderData("paymentAmount")}
+                                    name="paymentAmount"
+                                    fullWidth
+                                    id="paymentAmount"
+                                    label="Payment Amount"
+                                    size="medium"
+                                />
+                            </Grid>
+                        </Grid>
+                        {!values.showApprove && (
+                            <Button
+                                onClick={handleCreateButton}
+                                size="large"
+                                fullWidth
+                                variant="contained"
+                                sx={{ mt: 2, mb: 2 }}
+                            >
+                                Create Escrow
+                            </Button>
+                        )}
+                        {values.showApprove && (
+                            <Button
+                                onClick={handleApproveButton}
+                                size="large"
+                                fullWidth
+                                variant="contained"
+                                sx={{ mt: 2, mb: 2 }}
+                            >
+                                Approve NFT
+                            </Button>
+                        )}
+                        <Grid container justifyContent="flex-end">
+                            <Grid item>
+                                <Link href="/info" variant="body2">
+                                    Already have an escrow id? Check status
+                                </Link>
+                            </Grid>
+                        </Grid>
+                    </Box>
+                </React.Fragment>
+            )}
+            {!values.showForm && (
+                <React.Fragment>
+                    <Alert sx={{ mb: 3 }} variant="filled" severity="warning">
+                        Please save your Escrow Id
+                    </Alert>
+                    <Typography component="h1" variant="h5">
+                        Escrow Order
+                    </Typography>
+                    <Box component="form" sx={{ mt: 3 }}>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                                {!account && (
+                                    <TextField
+                                        name="seller"
+                                        fullWidth
+                                        id="seller"
+                                        label="Seller Address"
+                                        disabled
+                                        value=""
+                                        size="medium"
+                                    />
+                                )}
+                                {account && (
+                                    <TextField
+                                        name="seller"
+                                        fullWidth
+                                        id="seller"
+                                        label="Seller Address"
+                                        InputProps={{ readOnly: true }}
+                                        value={account}
+                                        size="medium"
+                                    />
+                                )}
+                            </Grid>
+                            <Grid item xs={12}>
+                                <TextField
+                                    name="escrowId"
+                                    fullWidth
+                                    id="escrowId"
+                                    label="Escrow ID"
+                                    size="medium"
+                                    value={txId}
+                                    InputProps={{ readOnly: true }}
+                                />
+                            </Grid>
+                        </Grid>
+                        <Button
+                            component={LK}
+                            to="/info"
+                            size="large"
+                            fullWidth
+                            variant="contained"
+                            sx={{ mt: 2, mb: 2 }}
+                        >
+                            Chek Escrow Order
+                        </Button>
+                    </Box>
+                </React.Fragment>
+            )}
         </Box>
     );
 };

@@ -31,7 +31,7 @@ function App() {
                         <Link
                             variant="subtitle1"
                             color="common.white"
-                            href="#"
+                            href="/"
                             underline="none"
                             sx={{ my: 1, mx: 1.5 }}
                         >
@@ -40,7 +40,7 @@ function App() {
                         <Link
                             variant="subtitle1"
                             color="common.white"
-                            href="#"
+                            href="/pay"
                             underline="none"
                             sx={{ my: 1, mx: 1.5 }}
                         >
