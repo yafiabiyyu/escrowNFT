@@ -81,15 +81,14 @@ contract escrowNFT is Ownable {
         address _buyerAddress,
         address _nftAddress,
         bytes memory _secret
-    ) public view returns (uint256 txId) {
+    ) public pure returns (uint256 txId) {
         txId = uint256(
             keccak256(
                 abi.encode(
                     _sellerAddress,
                     _buyerAddress,
                     _nftAddress,
-                    _secret,
-                    block.timestamp
+                    _secret
                 )
             )
         ) % txModul;
