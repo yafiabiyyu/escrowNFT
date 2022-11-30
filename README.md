@@ -1,13 +1,9 @@
-# Sample Hardhat Project
+# Celo Escrow NFT
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
 
-Try running some of the following tasks:
+### Contract Address
+- Escrow Contract :
+`0x1dbA2902A43d2e0af4DF890Ae22FFf9CE5B79108`
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.js
-```
+- Faucet Contract: 
+`0x0FA2488bBA28A94e166972100C460C94c4123DB3`
