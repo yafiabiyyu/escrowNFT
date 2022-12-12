@@ -1,9 +1,10 @@
 # Celo Escrow NFT
 
+This product website aims to enable users to place non-functional tokens (NFTs) in escrow on the celo blockchain network. This allows users to trust that their NFT transactions will be safe and secure until the transaction is completed. The escrow feature provided by this website will help increase trust and security in transactions on the celo blockchain network.
 
-### Contract Address
+### Contract Address (Celo Alfajores Testnet)
 - Escrow Contract :
-`0x1dbA2902A43d2e0af4DF890Ae22FFf9CE5B79108`
+`0xB04f2CFc78Ff2c1c35054f6e991aCda03e257Ecc`
 
 - Faucet Contract: 
-`0x0FA2488bBA28A94e166972100C460C94c4123DB3`
+`0x949aa4BCb55c322dCD6088A61df1C0754061Db40`
