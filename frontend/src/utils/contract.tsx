@@ -1,8 +1,8 @@
 import { Contract } from "ethers";
 import { Interface } from "ethers/lib/utils";
 
-export const escrowAddress = "0x15BB0E3cf5d20C56d80b0c5135520bEbF71a9c65";
-export const faucetAddress = "0xaF9eF52c984e0a8E0A591B20E77bf5ceCeD7258f";
+export const escrowAddress = "0xB04f2CFc78Ff2c1c35054f6e991aCda03e257Ecc";
+export const faucetAddress = "0x949aa4BCb55c322dCD6088A61df1C0754061Db40";
 
 export const nftAbi = new Interface([
     {

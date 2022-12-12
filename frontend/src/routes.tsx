@@ -2,7 +2,6 @@ import { FC } from "react";
 
 import Home from "./pages/create";
 import Tx from "./pages/info";
-import Pay from "./pages/pay";
 
 interface Route {
     key: string,
@@ -26,13 +25,6 @@ export const routes: Array<Route> = [
         path: '/info',
         enabled: true,
         component: Tx
-    },
-    {
-        key: 'pay-route',
-        title: 'Pay Escrow',
-        path: '/pay',
-        enabled: true,
-        component: Pay
     }
 
 ]

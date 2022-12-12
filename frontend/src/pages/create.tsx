@@ -112,7 +112,7 @@ const Home: FC<any> = (): ReactElement => {
                 type: "warning",
                 message: "Complete the data first",
             });
-        } else if (parseInt(order.paymentAmount) === 0) {
+        } else if (parseFloat(order.paymentAmount) === 0) {
             setAlert({
                 ...alert,
                 open: true,

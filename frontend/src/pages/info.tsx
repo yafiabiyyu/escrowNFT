@@ -77,7 +77,7 @@ const Tx: FC<any> = (): ReactElement => {
     }
 
     const handlePay = async () => {
-        await pay(order.escrowId);
+        await pay(order.escrowId, {value:order.paymentAmount});
     }
 
     React.useEffect(() => {
@@ -279,19 +279,19 @@ const Tx: FC<any> = (): ReactElement => {
                                         fullWidth
                                         InputProps={{ readOnly: true }} />
                                 </Grid>
-                                {account === order.sellerAddress && parseInt(Date.now().toString()) > parseInt(order.deadline) && order.status === "Pending" && (
+                                {account === order.sellerAddress && Date.now()/1000 > parseInt(order.deadline) && order.status === "Pending" && (
                                     <Grid item xs={12}>
                                         <Button size="medium" variant="contained" onClick={handleCancle} fullWidth>
                                             Cancle Escrow
                                         </Button>
                                     </Grid>
                                 )}
-                                {account === order.sellerAddress && parseInt(Date.now().toString()) < parseInt(order.deadline) && (
+                                {account === order.sellerAddress && Date.now()/1000 < parseInt(order.deadline) && (
                                     <Grid item xs={12}>
                                         <Alert severity="warning">You can cancel the escrow order after the deadline ends.</Alert>
                                     </Grid>
                                 )}
-                                {account === order.buyerAddress && parseInt(Date.now().toString()) < parseInt(order.deadline) && order.status === "Pending" && (
+                                {account === order.buyerAddress && Date.now()/1000 < parseInt(order.deadline) && order.status === "Pending" && (
                                     <React.Fragment>
                                         <Grid item xs={6}>
                                             <Button size="medium" variant="contained" onClick={handleReject} fullWidth>
@@ -305,14 +305,9 @@ const Tx: FC<any> = (): ReactElement => {
                                         </Grid>
                                     </React.Fragment>
                                 )}
-                                {account === order.buyerAddress && parseInt(Date.now().toString()) > parseInt(order.deadline) && (
+                                {account === order.buyerAddress && Date.now()/1000 > parseInt(order.deadline) && (
                                     <Grid item xs={12}>
                                         <Alert severity="warning">The Escrow Order has expired</Alert>
-                                    </Grid>
-                                )}
-                                {account === order.sellerAddress || account === order.buyerAddress && order.status !== "Pending" && (
-                                    <Grid item xs={12}>
-                                        <Alert severity="info">The escrow order has been {order.status}.</Alert>
                                     </Grid>
                                 )}
                                 <Grid item xs={12}>
