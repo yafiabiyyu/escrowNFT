@@ -37,15 +37,6 @@ function App() {
                         >
                             Create Escrow
                         </Link>
-                        <Link
-                            variant="subtitle1"
-                            color="common.white"
-                            href="/pay"
-                            underline="none"
-                            sx={{ my: 1, mx: 1.5 }}
-                        >
-                            Pay Escrow
-                        </Link>
                     </nav>
                     {!account && (
                         <Button

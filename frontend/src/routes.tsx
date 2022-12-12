@@ -1,7 +1,7 @@
 import { FC } from "react";
 
 import Home from "./pages/create";
-import Info from "./pages/info";
+import Tx from "./pages/info";
 import Pay from "./pages/pay";
 
 interface Route {
@@ -22,10 +22,10 @@ export const routes: Array<Route> = [
     },
     {
         key: 'info-route',
-        title: 'Info Escrow',
+        title: 'Tx Escrow',
         path: '/info',
         enabled: true,
-        component: Info
+        component: Tx
     },
     {
         key: 'pay-route',

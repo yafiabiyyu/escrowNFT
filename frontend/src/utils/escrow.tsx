@@ -1,5 +1,5 @@
 import { useCall, useContractFunction,  } from "@usedapp/core";
-import { ethers } from "ethers";
+import { constants, ethers } from "ethers";
 import { escrow } from "./contract";
 
 
@@ -79,5 +79,9 @@ export function useOrderData(escrowId:string) {
     if(error) {
         return "Error";
     }
-    return value;
+    if(value?.[3] === constants.AddressZero){
+        return "Null"
+    }else {
+        return value;
+    }
 }
