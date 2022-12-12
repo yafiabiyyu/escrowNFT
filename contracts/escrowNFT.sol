@@ -124,6 +124,7 @@ contract escrowNFT is Ownable {
             value: msg.value
         }("");
         require(success);
+        escrowOrder[_txId].status = Status.Accepted;
         _transferNft(_txId, msg.sender);
         emit PaymentEscrow(
             _txId,
