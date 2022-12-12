@@ -3,7 +3,7 @@ const hre = require('hardhat');
 
 async function main(){
     // Get contract factory
-    const contract = await hre.ethers.getContractAt('FaucetNFT', '0xf5Bb911eA5A67dB6370037B4Fb34689402a6B29B');
+    const contract = await hre.ethers.getContractAt('FaucetNFT', '0x949aa4BCb55c322dCD6088A61df1C0754061Db40');
     const tx = await contract.faucetNFT();
     await tx.wait();
 }
