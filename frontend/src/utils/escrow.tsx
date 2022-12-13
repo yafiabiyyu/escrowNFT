@@ -79,9 +79,5 @@ export function useOrderData(escrowId:string) {
     if(error) {
         return "Error";
     }
-    if(value?.[3] === constants.AddressZero){
-        return "Null"
-    }else {
-        return value;
-    }
+    return value;
 }

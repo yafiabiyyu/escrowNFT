@@ -55,14 +55,17 @@ const Tx: FC<any> = (): ReactElement => {
     const { reject, successReject, errorReject } = useRejectEscrow();
     const { pay, successPay, errorPay } = usePayEscrow();
 
+    const [searchId, setSearchId] = React.useState<string>("0")
+
     const handleOnchange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setOrder({ ...order, escrowId: event.target.value });
+        setSearchId(event.target.value)
     }
 
     const handleButtonSearch = () => {
         setSearch(false);
         setData(true);
         setLoading(true);
+        setOrder(prevOrder => ({...prevOrder, escrowId: searchId}))
         timer.current = window.setTimeout(() => {
             setLoading(false);
         }, 5000)
@@ -114,6 +117,7 @@ const Tx: FC<any> = (): ReactElement => {
                                     id="escrowId"
                                     size="medium"
                                     fullWidth
+                                    value={searchId}
                                     onChange={handleOnchange} />
                             </Grid>
                             <Grid item xs={12}>

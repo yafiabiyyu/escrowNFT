@@ -104,7 +104,7 @@ describe("escrow NFT: Seller & Buyer Scope Test", async function () {
         );
         await tx.wait();
 
-        const txCancle = await this.escrow.cancleEscrow(txId);
+        const txCancle = await this.escrow.cancelEscrow(txId);
         await txCancle.wait();
 
         expect(await this.nft.ownerOf(0)).to.be.equal(seller.address);
