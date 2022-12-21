@@ -20,11 +20,13 @@ contract escrowNFT is Ownable {
         uint256 tokenId;
         uint256 paymentAmount;
         uint256 deadline;
+        uint256 duration;
         address nftAddress;
         address buyerAddress;
         address sellerAddress;
         Status status;
     }
+
     Escrow escrow;
 
     mapping(uint256 => Escrow) public escrowOrder;
@@ -59,12 +61,22 @@ contract escrowNFT is Ownable {
     );
 
     modifier onlySeller(uint256 _tokenId) {
-        require(escrowOrder[_tokenId].sellerAddress == msg.sender);
+        require(escrowOrder[_tokenId].sellerAddress == msg.sender, "only seller can access this function");
         _;
     }
 
     modifier onlyBuyer(uint256 _tokenId) {
-        require(escrowOrder[_tokenId].buyerAddress == msg.sender);
+        require(escrowOrder[_tokenId].buyerAddress == msg.sender, "only buyer can access this function");
+        _;
+    }
+
+    modifier onlyPending(uint256 _txId) {
+        require(escrowOrder[_txId].status == Status.Pending, "Status not pending");
+        _;
+    }
+
+    modifier notFinished(uint256 _txId) {
+        require(block.timestamp < escrowOrder[_txId].deadline, "Past deadline");
         _;
     }
 
@@ -97,6 +109,7 @@ contract escrowNFT is Ownable {
     function createEscrow(
         uint256 _txId,
         uint256 _tokenId,
+        uint256 _duration,
         uint256 _paymentAmount,
         address _nftAddress,
         address _buyerAddress
@@ -107,6 +120,7 @@ contract escrowNFT is Ownable {
         IERC721(_nftAddress).transferFrom(msg.sender, address(this), _tokenId);
         escrow.tokenId = _tokenId;
         escrow.paymentAmount = _paymentAmount;
+        escrow.duration = _duration;
         escrow.deadline = block.timestamp + 1 hours;
         escrow.nftAddress = _nftAddress;
         escrow.buyerAddress = _buyerAddress;
@@ -116,10 +130,8 @@ contract escrowNFT is Ownable {
         emit NewEscrow(_txId, block.timestamp, msg.sender, _buyerAddress);
     }
 
-    function payEscrow(uint256 _txId) public payable onlyBuyer(_txId) {
-        require(block.timestamp < escrowOrder[_txId].deadline);
-        require(escrowOrder[_txId].status == Status.Pending);
-        require(msg.value == escrowOrder[_txId].paymentAmount);
+    function payEscrow(uint256 _txId) public payable onlyBuyer(_txId) onlyPending(_txId) notFinished(_txId) {
+        require(msg.value == escrowOrder[_txId].paymentAmount, "wrong value");
         (bool success, ) = payable(escrowOrder[_txId].sellerAddress).call{
             value: msg.value
         }("");
@@ -135,9 +147,8 @@ contract escrowNFT is Ownable {
         );
     }
 
-    function cancleEscrow(uint256 _txId) public onlySeller(_txId) {
-        require(block.timestamp > escrowOrder[_txId].deadline);
-        require(escrowOrder[_txId].status == Status.Pending);
+    function cancleEscrow(uint256 _txId) public onlySeller(_txId) onlyPending(_txId) {
+        require(block.timestamp > escrowOrder[_txId].deadline, "dead line not reached");
         escrowOrder[_txId].status = Status.Canceled;
         _transferNft(_txId, msg.sender);
         emit CancleEscrow(
@@ -148,9 +159,7 @@ contract escrowNFT is Ownable {
         );
     }
 
-    function rejectEscrow(uint256 _txId) public onlyBuyer(_txId) {
-        require(block.timestamp < escrowOrder[_txId].deadline);
-        require(escrowOrder[_txId].status == Status.Pending);
+    function rejectEscrow(uint256 _txId) public onlyBuyer(_txId) onlyPending(_txId) notFinished(_txId) {
         escrowOrder[_txId].status = Status.Rejected;
         _transferNft(_txId, escrowOrder[_txId].sellerAddress);
         emit RejectEscrow(
